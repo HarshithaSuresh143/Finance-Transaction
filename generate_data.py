@@ -38,7 +38,7 @@ def generate_data(db_config):
     cursor = connection.cursor()
 
     # Drop and recreate the table
-    drop_and_recreate_table(cursor)
+    #drop_and_recreate_table(cursor)
 
     # Define expense categories and consistent amounts
     categories = [
@@ -107,20 +107,22 @@ def generate_data(db_config):
 if __name__ == "__main__":
     import sqlite3
 
-def generate_data():
+ddef generate_data():
     connection = sqlite3.connect("transactions.db")
     cursor = connection.cursor()
 
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS transactions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        transaction_id TEXT,
-        amount REAL,
-        timestamp TEXT
-    )
-    """)
+    create_transactions_table(cursor)
+
+    for _ in range(20):
+        # generate transaction
+        cursor.execute(
+            """
+            INSERT INTO transactions
+            (date, category, description, amount, transaction_type, user_id, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            transaction
+        )
 
     connection.commit()
     connection.close()
-
-generate_data()
