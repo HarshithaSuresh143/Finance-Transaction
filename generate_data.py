@@ -1,7 +1,6 @@
 import sqlite3
 import random
 from datetime import datetime, timedelta
-import time
 
 def generate_regular_transaction(user_id, category, description, amount, date, transaction_type):
     formatted_date = date.strftime("%Y-%m-%d %H:%M:%S")
@@ -25,9 +24,10 @@ def create_transactions_table(cursor):
             amount REAL NOT NULL,
             transaction_type TEXT NOT NULL,
             user_id INTEGER NOT NULL,
-            status TEXT NOT NULL
-        )
+            status TEXT DEFAULT 'pending'
+        );
     """)
+
 
 def generate_data():
     connection = sqlite3.connect("transactions.db")
