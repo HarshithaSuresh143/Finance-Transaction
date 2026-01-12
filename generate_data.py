@@ -1,4 +1,4 @@
-import mysql.connector
+import sqlite3
 import random
 from datetime import datetime, timedelta
 import time
