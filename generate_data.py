@@ -2,17 +2,14 @@ import sqlite3
 import random
 from datetime import datetime, timedelta
 
-def generate_regular_transaction(user_id, category, description, amount, date, transaction_type):
-    formatted_date = date.strftime("%Y-%m-%d %H:%M:%S")
-    return (formatted_date, category, description, amount, transaction_type, user_id, "pending")
+def generate_regular_transaction(user_id, category, description, amount, date):
+    return (date, category, description, amount, "Debit", user_id, "pending")
 
 def generate_salary_transaction(user_id, salary, date):
-    formatted_date = date.strftime("%Y-%m-%d %H:%M:%S")
-    return (formatted_date, "Salary", "Salary Credit", salary, "Credit", user_id, "pending")
+    return (date, "Salary", "Salary Credit", salary, "Credit", user_id, "pending")
 
 def generate_credit_transaction(user_id, amount, date):
-    formatted_date = date.strftime("%Y-%m-%d %H:%M:%S")
-    return (formatted_date, "Credit", "Credit Transfer", amount, "Credit", user_id, "pending")
+    return (date, "Credit", "Credit Transfer", amount, "Credit", user_id, "pending")
 
 def create_transactions_table(cursor):
     cursor.execute("""
@@ -28,45 +25,32 @@ def create_transactions_table(cursor):
         )
     """)
 
-
 def generate_data():
-    connection = sqlite3.connect("transactions.db")
-    cursor = connection.cursor()
+    conn = sqlite3.connect("transactions.db")
+    cursor = conn.cursor()
 
     create_transactions_table(cursor)
 
-    categories = [
-        "Grocery", "Dining", "Transfer", "EMI",
-        "Gym", "Food", "Beauty", "Gas", "Electricity"
-    ]
+    categories = ["Grocery", "Dining", "EMI", "Food", "Gas"]
 
-    for _ in range(50):
-        user_id = random.randint(1, 10)
+    for _ in range(20):
+        user_id = random.randint(1, 5)
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        lower_bound = datetime.now() - timedelta(days=3 * 365)
-        upper_bound = datetime.now()
-        random_date = random.choice(
-            range(int(lower_bound.timestamp()), int(upper_bound.timestamp()))
-        )
-        date = datetime.fromtimestamp(random_date)
+        t = random.choice(["regular", "salary", "credit"])
 
-        transaction_type = random.choice(["regular", "salary", "credit"])
-
-        if transaction_type == "regular":
-            category = random.choice(categories)
-            amount = round(random.uniform(10, 500), 2)
-            description = f"{category} Expense"
+        if t == "regular":
             transaction = generate_regular_transaction(
-                user_id, category, description, amount, date, "Debit"
+                user_id,
+                random.choice(categories),
+                "Expense",
+                random.randint(100, 500),
+                date
             )
-
-        elif transaction_type == "salary":
-            salary_amount = random.choice([400, 500, 600, 800])
-            transaction = generate_salary_transaction(user_id, salary_amount, date)
-
+        elif t == "salary":
+            transaction = generate_salary_transaction(user_id, 1000, date)
         else:
-            credit_amount = round(random.uniform(100, 1000), 2)
-            transaction = generate_credit_transaction(user_id, credit_amount, date)
+            transaction = generate_credit_transaction(user_id, 500, date)
 
         cursor.execute("""
             INSERT INTO transactions
@@ -74,7 +58,5 @@ def generate_data():
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, transaction)
 
-        connection.commit()
-        time.sleep(0.2)
-
-    connection.close()
+    conn.commit()
+    conn.close()
