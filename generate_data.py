@@ -107,7 +107,7 @@ def generate_data(db_config):
 if __name__ == "__main__":
     import sqlite3
 
-ddef generate_data():
+def generate_data():
     connection = sqlite3.connect("transactions.db")
     cursor = connection.cursor()
 
