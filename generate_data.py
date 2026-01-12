@@ -1,72 +1,52 @@
-import streamlit as st
 import sqlite3
-import pandas as pd
-import generate_data
-from datetime import datetime
+import random
+from datetime import datetime, timedelta
 
-st.set_page_config(layout="wide")
-st.title("💰 Advanced Financial Transaction System")
+# ---------------- CREATE TABLE ----------------
+def create_transactions_table(cursor):
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS transactions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT,
+            category TEXT,
+            description TEXT,
+            amount REAL,
+            transaction_type TEXT,
+            user_id INTEGER,
+            status TEXT
+        )
+    """)
 
-# ---------------- BUTTON ----------------
-if st.button("Generate Transactions"):
-    generate_data.generate_data(50)
-    st.success("Transactions generated successfully!")
+# ---------------- GENERATE SINGLE TRANSACTION ----------------
+def generate_transaction(user_id, date):
+    categories = ["Grocery", "Dining", "Transfer", "EMI", "Gym", "Food", "Beauty", "Gas", "Electricity"]
+    t_type = random.choice(["regular", "salary", "credit"])
+    
+    if t_type == "regular":
+        category = random.choice(categories)
+        return (date, category, f"{category} Expense", random.randint(50, 500), "Debit", user_id, "pending")
+    elif t_type == "salary":
+        return (date, "Salary", "Salary Credit", random.randint(500, 1500), "Credit", user_id, "pending")
+    else:
+        return (date, "Credit", "Credit Transfer", random.randint(100, 1000), "Credit", user_id, "pending")
 
-# ---------------- LOAD DATA ----------------
-conn = sqlite3.connect("transactions.db")
-df = pd.read_sql("SELECT * FROM transactions", conn)
+# ---------------- GENERATE MULTIPLE TRANSACTIONS ----------------
+def generate_data(n=50):
+    conn = sqlite3.connect("transactions.db")
+    cursor = conn.cursor()
+    create_transactions_table(cursor)
 
-# Convert date to datetime
-df["date"] = pd.to_datetime(df["date"])
+    for _ in range(n):
+        user_id = random.randint(1, 10)
+        # Random date in last 3 years
+        date = datetime.now() - timedelta(days=random.randint(0, 365*3), seconds=random.randint(0, 86400))
+        transaction = generate_transaction(user_id, date.strftime("%Y-%m-%d %H:%M:%S"))
 
-# ---------------- REMOVE DUPLICATES ----------------
-df.drop_duplicates(subset=["user_id","amount","date"], inplace=True)
+        cursor.execute("""
+            INSERT INTO transactions
+            (date, category, description, amount, transaction_type, user_id, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, transaction)
 
-# ---------------- SORT OUT-OF-ORDER ----------------
-df = df.sort_values("date")
-
-# ---------------- USER FILTER ----------------
-user_filter = st.sidebar.selectbox(
-    "Select User",
-    options=["All"] + sorted(df["user_id"].unique().tolist())
-)
-if user_filter != "All":
-    df = df[df["user_id"] == user_filter]
-
-# ---------------- FRAUD DETECTION ----------------
-st.subheader("🚨 Fraud Detection")
-fraud_df = df[(df["amount"] > 1000)]  # simple threshold
-st.dataframe(fraud_df)
-
-# ---------------- KPIs ----------------
-total_credit = df[df["transaction_type"]=="Credit"]["amount"].sum()
-total_debit = df[df["transaction_type"]=="Debit"]["amount"].sum()
-balance = total_credit - total_debit
-
-col1, col2, col3 = st.columns(3)
-col1.metric("💵 Total Credit", f"₹ {total_credit:,.0f}")
-col2.metric("💸 Total Debit", f"₹ {total_debit:,.0f}")
-col3.metric("📊 Net Balance", f"₹ {balance:,.0f}")
-
-st.divider()
-
-# ---------------- MONTHLY TRENDS ----------------
-st.subheader("📅 Monthly Transaction Trends")
-df["month"] = df["date"].dt.to_period("M")
-monthly_df = df.groupby("month")["amount"].sum().reset_index()
-monthly_df["month"] = monthly_df["month"].astype(str)
-st.line_chart(monthly_df.rename(columns={"month":"index"}).set_index("index"))
-
-# ---------------- CATEGORY-WISE EXPENSE ----------------
-st.subheader("📊 Category-wise Expenses (Debit Only)")
-category_df = df[df["transaction_type"]=="Debit"].groupby("category")["amount"].sum().reset_index()
-st.bar_chart(category_df.rename(columns={"category":"index"}).set_index("index"))
-
-# ---------------- CREDIT VS DEBIT ----------------
-st.subheader("⚖️ Credit vs Debit")
-cd_df = pd.DataFrame({"Type":["Credit","Debit"],"Amount":[total_credit,total_debit]})
-st.bar_chart(cd_df.rename(columns={"Type":"index"}).set_index("index"))
-
-# ---------------- RECENT TRANSACTIONS ----------------
-st.subheader("🧾 Recent Transactions")
-st.dataframe(df.sort_values("id",ascending=False).head(10))
+    conn.commit()
+    conn.close()
