@@ -53,7 +53,8 @@ def generate_data(db_config):
         "Electricity",
     ]
 
-    while True:
+    for _ in range(50):   # generate 50 transactions
+
         # Generate a random user ID
         user_id = random.randint(1, 10)
 
