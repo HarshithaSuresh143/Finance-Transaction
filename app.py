@@ -13,9 +13,9 @@ if st.button("Generate Transactions"):
 # Connect to database
 conn = sqlite3.connect("transactions.db")
 
-# Read data
+# Read data (FIXED COLUMN NAME)
 df = pd.read_sql(
-    "SELECT * FROM transactions ORDER BY transaction_id DESC LIMIT 10",
+    "SELECT * FROM transactions ORDER BY id DESC LIMIT 10",
     conn
 )
 
