@@ -1,77 +1,44 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+import generate_data
 
-st.set_page_config(layout="wide")
-st.title("💰 Financial Transaction Management System")
+st.title("💰 Advanced Financial Transaction System")
 
 # ---------------- DATABASE ----------------
 conn = sqlite3.connect("transactions.db")
-df = pd.read_sql("SELECT * FROM transactions", conn)
+cursor = conn.cursor()
 
-# Convert date column
-df["date"] = pd.to_datetime(df["date"])
-
-# ---------------- SIDEBAR FILTER ----------------
-st.sidebar.header("Filters")
-
-user_filter = st.sidebar.selectbox(
-    "Select User",
-    options=["All"] + sorted(df["user_id"].unique().tolist())
+# ---------------- CREATE TABLE IF NOT EXISTS ----------------
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
+    category TEXT,
+    description TEXT,
+    amount REAL,
+    transaction_type TEXT,
+    user_id INTEGER,
+    status TEXT
 )
+""")
+conn.commit()
 
-if user_filter != "All":
-    df = df[df["user_id"] == user_filter]
+# ---------------- BUTTON: GENERATE TRANSACTIONS ----------------
+if st.button("Generate Transactions"):
+    generate_data.generate_data(50)
+    st.success("Transactions generated successfully!")
 
-# ---------------- KPIs ----------------
-total_credit = df[df["transaction_type"] == "Credit"]["amount"].sum()
-total_debit = df[df["transaction_type"] == "Debit"]["amount"].sum()
-balance = total_credit - total_debit
+# ---------------- LOAD DATA ----------------
+df = pd.read_sql("SELECT * FROM transactions ORDER BY id DESC", conn)
 
-col1, col2, col3 = st.columns(3)
-col1.metric("💵 Total Credit", f"₹ {total_credit:,.0f}")
-col2.metric("💸 Total Debit", f"₹ {total_debit:,.0f}")
-col3.metric("📊 Net Balance", f"₹ {balance:,.0f}")
-
-st.divider()
-
-# ---------------- TRANSACTION VOLUME OVER TIME ----------------
-st.subheader("📈 Transaction Volume Over Time")
-
-daily_volume = (
-    df.groupby(df["date"].dt.date)["amount"]
-    .sum()
-    .reset_index()
-)
-
-st.line_chart(daily_volume, x="date", y="amount")
-
-# ---------------- CATEGORY-WISE EXPENSE ----------------
-st.subheader("📊 Category-wise Expenses (Debit Only)")
-
-category_expense = (
-    df[df["transaction_type"] == "Debit"]
-    .groupby("category")["amount"]
-    .sum()
-    .reset_index()
-)
-
-st.bar_chart(category_expense, x="category", y="amount")
-
-# ---------------- CREDIT VS DEBIT ----------------
-st.subheader("⚖️ Credit vs Debit Comparison")
-
-cd_df = pd.DataFrame({
-    "Type": ["Credit", "Debit"],
-    "Amount": [total_credit, total_debit]
-})
-
-st.bar_chart(cd_df, x="Type", y="Amount")
-
-# ---------------- RECENT TRANSACTIONS ----------------
-st.subheader("🧾 Recent Transactions")
-
-st.dataframe(
-    df.sort_values("id", ascending=False).head(10),
-    use_container_width=True
-)
+# ---------------- HANDLE EMPTY DATABASE ----------------
+if df.empty:
+    st.warning("No transactions found! Click 'Generate Transactions' to create sample data.")
+else:
+    # Convert date to datetime
+    df["date"] = pd.to_datetime(df["date"])
+    
+    # Display recent transactions
+    st.subheader("🧾 Recent Transactions")
+    st.dataframe(df.head(10), use_container_width=True)
