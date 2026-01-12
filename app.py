@@ -9,7 +9,8 @@ if st.button("Generate Transactions"):
     generate_data.generate_data()
     st.success("Transactions generated successfully!")
 conn = sqlite3.connect("transactions.db")
-df = pd.read_sql("SELECT * FROM transactions ORDER BY date DESC LIMIT 10", conn)
 
-st.subheader("Recent Transactions")
-st.dataframe(df)
+df = pd.read_sql(
+    "SELECT * FROM transactions ORDER BY transaction_id DESC LIMIT 10",
+    conn
+)
