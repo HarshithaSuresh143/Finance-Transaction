@@ -18,14 +18,14 @@ def create_transactions_table(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            date TEXT NOT NULL,
-            category TEXT NOT NULL,
-            description TEXT NOT NULL,
-            amount REAL NOT NULL,
-            transaction_type TEXT NOT NULL,
-            user_id INTEGER NOT NULL,
-            status TEXT DEFAULT 'pending'
-        );
+            date TEXT,
+            category TEXT,
+            description TEXT,
+            amount REAL,
+            transaction_type TEXT,
+            user_id INTEGER,
+            status TEXT
+        )
     """)
 
 
