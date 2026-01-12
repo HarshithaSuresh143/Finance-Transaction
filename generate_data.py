@@ -2,15 +2,6 @@ import sqlite3
 import random
 from datetime import datetime, timedelta
 
-def generate_regular_transaction(user_id, category, description, amount, date):
-    return (date, category, description, amount, "Debit", user_id, "pending")
-
-def generate_salary_transaction(user_id, salary, date):
-    return (date, "Salary", "Salary Credit", salary, "Credit", user_id, "pending")
-
-def generate_credit_transaction(user_id, amount, date):
-    return (date, "Credit", "Credit Transfer", amount, "Credit", user_id, "pending")
-
 def create_transactions_table(cursor):
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS transactions (
@@ -25,33 +16,29 @@ def create_transactions_table(cursor):
         )
     """)
 
-def generate_data():
+def generate_transaction(user_id, date):
+    categories = ["Grocery", "Dining", "Transfer", "EMI", "Gym", "Food", "Beauty", "Gas", "Electricity"]
+    t_type = random.choice(["regular", "salary", "credit"])
+    
+    if t_type == "regular":
+        category = random.choice(categories)
+        return (date, category, f"{category} Expense", random.randint(50, 500), "Debit", user_id, "pending")
+    elif t_type == "salary":
+        return (date, "Salary", "Salary Credit", random.randint(500, 1500), "Credit", user_id, "pending")
+    else:
+        return (date, "Credit", "Credit Transfer", random.randint(100, 1000), "Credit", user_id, "pending")
+
+def generate_data(n=50):
     conn = sqlite3.connect("transactions.db")
     cursor = conn.cursor()
-
     create_transactions_table(cursor)
 
-    categories = ["Grocery", "Dining", "EMI", "Food", "Gas"]
+    for _ in range(n):
+        user_id = random.randint(1, 10)
+        date = datetime.now() - timedelta(days=random.randint(0, 365*3), seconds=random.randint(0, 86400))
+        transaction = generate_transaction(user_id, date.strftime("%Y-%m-%d %H:%M:%S"))
 
-    for _ in range(20):
-        user_id = random.randint(1, 5)
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        t = random.choice(["regular", "salary", "credit"])
-
-        if t == "regular":
-            transaction = generate_regular_transaction(
-                user_id,
-                random.choice(categories),
-                "Expense",
-                random.randint(100, 500),
-                date
-            )
-        elif t == "salary":
-            transaction = generate_salary_transaction(user_id, 1000, date)
-        else:
-            transaction = generate_credit_transaction(user_id, 500, date)
-
+        # Insert transaction
         cursor.execute("""
             INSERT INTO transactions
             (date, category, description, amount, transaction_type, user_id, status)
