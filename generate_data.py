@@ -104,10 +104,22 @@ def generate_data(db_config):
         time.sleep(1)
 
 if __name__ == "__main__":
-    db_config = {
-        'host': '127.0.0.1',
-        'user': 'root',
-        'password': 'Shubh@0145',
-        'database': 'User Transaction',
-    }
-    generate_data(db_config)
+    import sqlite3
+
+def generate_data():
+    connection = sqlite3.connect("transactions.db")
+    cursor = connection.cursor()
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS transactions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        transaction_id TEXT,
+        amount REAL,
+        timestamp TEXT
+    )
+    """)
+
+    connection.commit()
+    connection.close()
+
+generate_data()
